@@ -1,0 +1,38 @@
+name: Build FFmpeg (custom)
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "win64 | win32 | linux64 | linuxarm64"
+        required: true
+        default: linux64
+      variant:
+        description: "gpl | lgpl | nonfree | gpl-shared | lgpl-shared | nonfree-shared"
+        required: true
+        default: gpl
+      addins:
+        description: "VD: 7.1 hoặc 7.1,debug"
+        required: false
+        default: "7.1"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: |
+          IFS=',' read -r -a ADDINS <<< "${{ github.event.inputs.addins }}"
+          ./makeimage.sh "${{ github.event.inputs.target }}" "${{ github.event.inputs.variant }}" "${ADDINS[@]}"
+
+      - name: Build FFmpeg
+        run: |
+          IFS=',' read -r -a ADDINS <<< "${{ github.event.inputs.addins }}"
+          ./build.sh "${{ github.event.inputs.target }}" "${{ github.event.inputs.variant }}" "${ADDINS[@]}"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ffmpeg-${{ github.event.inputs.target }}-${{ github.event.inputs.variant }}-${{ github.event.inputs.addins }}
+          path: artifacts/**
